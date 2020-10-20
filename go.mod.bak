@@ -7,6 +7,7 @@ require (
 	github.com/gorilla/websocket v1.4.1
 	github.com/miekg/dns v1.1.4
 	github.com/refraction-networking/utls v0.0.0-20190909200633-43c36d3c1f57
+	github.com/se7enkings/quic-go v0.19.6
 	go.starlark.net v0.0.0-20190919145610-979af19b165c
 	golang.org/x/crypto v0.0.0-20191029031824-8986dd9e96cf
 	golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3
