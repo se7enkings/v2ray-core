@@ -29,3 +29,12 @@ This repo relies on the following third-party projects:
 * For testing only:
   * [miekg/dns](https://github.com/miekg/dns)
   * [h12w/socks](https://github.com/h12w/socks)
+
+## 编译
+### GOPATH 方式
+1. Clone项目到本地 => ${source_dir}
+2. export GOPATH="${source_dir}/external:$GOPATH"
+3. 将${source_dir}内容全部拷贝至 ${source_dir}/external/src/v2ray.com/core/中
+4. cd ${source_dir}/main/; env CGO_ENABLED=0 go build -o $HOME/test/v2ray -ldflags "-s -w"
+5. cd ${source_dir}/infra/control/main; CGO_ENABLED=0 go build -o $HOME/test/v2ctl -tags confonly -ldflags "-s -w"
+
