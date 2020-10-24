@@ -251,6 +251,7 @@ func NewBBRSender(clock Clock, rttStats *RTTStats, initialCongestionWindow, maxC
 		recoveryState:             NOT_IN_RECOVERY,
 		recoveryWindow:            maxCongestionWindow,
 		minRttSinceLastProbeRtt:   InfiniteRTT,
+		probeRttBasedOnBdp:        true,
 	}
 }
 
