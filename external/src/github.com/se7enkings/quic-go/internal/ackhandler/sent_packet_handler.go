@@ -96,7 +96,7 @@ func NewSentPacketHandler(
 
 	var cc congestion.SendAlgorithmWithDebugInfos
 	if true {
-		log.Printf("quic-go: bbr is enabled. bbr-magic-2.1")
+		log.Printf("quic-go: bbr is enabled. bbr-magic-2.2")
 		cc = congestion.NewBBRSender(congestion.DefaultClock{},
 			rttStats,
 			protocol.InitialCongestionWindow,

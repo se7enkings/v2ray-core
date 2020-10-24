@@ -251,7 +251,7 @@ func NewBBRSender(clock Clock, rttStats *RTTStats, initialCongestionWindow, maxC
 		recoveryState:             NOT_IN_RECOVERY,
 		recoveryWindow:            maxCongestionWindow,
 		minRttSinceLastProbeRtt:   InfiniteRTT,
-		probeRttBasedOnBdp:        true,
+		probeRttBasedOnBdp:        false,
 	}
 }
 
@@ -714,7 +714,7 @@ func (b *bbrSender) ProbeRttCongestionWindow() protocol.ByteCount {
 	if b.probeRttBasedOnBdp {
 		return b.GetTargetCongestionWindow(ModerateProbeRttMultiplier)
 	} else {
-		return maxByteCount(b.congestionWindow, b.minCongestionWindow)
+		return maxByteCount(b.congestionWindow/2, b.minCongestionWindow)
 	}
 }
 
