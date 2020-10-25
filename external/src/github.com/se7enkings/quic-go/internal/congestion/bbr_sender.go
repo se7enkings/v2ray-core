@@ -243,7 +243,7 @@ func NewBBRSender(clock Clock, rttStats *RTTStats, initialCongestionWindow, maxC
 		minCongestionWindow:       DefaultMinimumCongestionWindow,
 		highGain:                  DefaultHighGain,
 		highCwndGain:              DefaultHighGain,
-		drainGain:                 1.1 * 1.0 / DefaultHighGain,
+		drainGain:                 1.2 * 1.0 / DefaultHighGain,
 		pacingGain:                1.0,
 		congestionWindowGain:      1.0,
 		congestionWindowGainConst: DefaultCongestionWindowGainConst,
@@ -251,6 +251,7 @@ func NewBBRSender(clock Clock, rttStats *RTTStats, initialCongestionWindow, maxC
 		recoveryState:             NOT_IN_RECOVERY,
 		recoveryWindow:            maxCongestionWindow,
 		minRttSinceLastProbeRtt:   InfiniteRTT,
+		probeRttBasedOnBdp:        false,
 	}
 }
 
@@ -389,7 +390,7 @@ func (b *bbrSender) InSlowStart() bool {
 }
 
 func (b *bbrSender) ShouldSendProbingPacket() bool {
-	if b.pacingGain <= 1 {
+	if b.pacingGain <= 1.125 {
 		return false
 	}
 	// TODO(b/77975811): If the pipe is highly under-utilized, consider not
@@ -409,7 +410,7 @@ func (b *bbrSender) IsPipeSufficientlyFull() bool {
 		// must be more than 25% above the target.
 		return b.GetBytesInFlight() >= b.GetTargetCongestionWindow(1.5)
 	}
-	if b.pacingGain > 1 {
+	if b.pacingGain > 1.125 {
 		// Super-unity PROBE_BW doesn't exit until 1.25 * BDP is achieved.
 		return b.GetBytesInFlight() >= b.GetTargetCongestionWindow(b.pacingGain)
 	}
@@ -584,14 +585,14 @@ func (b *bbrSender) UpdateGainCyclePhase(now time.Time, priorInFlight protocol.B
 	// pacing_gain * BDP.  Make sure that it actually reaches the target, as long
 	// as there are no losses suggesting that the buffers are not able to hold
 	// that much.
-	if b.pacingGain > 1.0 && !hasLosses && priorInFlight < b.GetTargetCongestionWindow(b.pacingGain) {
+	if b.pacingGain > 1.125 && !hasLosses && priorInFlight < b.GetTargetCongestionWindow(b.pacingGain) {
 		shouldAdvanceGainCycling = false
 	}
 	// If pacing gain is below 1.0, the connection is trying to drain the extra
 	// queue which could have been incurred by probing prior to it.  If the number
 	// of bytes in flight falls down to the estimated BDP value earlier, conclude
 	// that the queue has been successfully drained and exit this cycle early.
-	if b.pacingGain < 1.0 && bytesInFlight <= b.GetTargetCongestionWindow(1.0) {
+	if b.pacingGain < 1.125 && bytesInFlight <= b.GetTargetCongestionWindow(1.125) {
 		shouldAdvanceGainCycling = true
 	}
 
@@ -600,8 +601,8 @@ func (b *bbrSender) UpdateGainCyclePhase(now time.Time, priorInFlight protocol.B
 		b.lastCycleStart = now
 		// Stay in low gain mode until the target BDP is hit.
 		// Low gain mode will be exited immediately when the target BDP is achieved.
-		if b.drainToTarget && b.pacingGain < 1.0 && PacingGain[b.cycleCurrentOffset] == 1.0 &&
-			bytesInFlight > b.GetTargetCongestionWindow(1.0) {
+		if b.drainToTarget && b.pacingGain < 1.125 && PacingGain[b.cycleCurrentOffset] == 1.125 &&
+			bytesInFlight > b.GetTargetCongestionWindow(1.125) {
 			return
 		}
 		b.pacingGain = PacingGain[b.cycleCurrentOffset]
@@ -689,7 +690,7 @@ func (b *bbrSender) MaybeEnterOrExitProbeRtt(now time.Time, isRoundStart, minRtt
 			// we allow an extra packet since QUIC checks CWND before sending a
 			// packet.
 			if b.GetBytesInFlight() < b.ProbeRttCongestionWindow()+MaxOutgoingPacketSize {
-				b.exitProbeRttAt = now.Add(ProbeRttTime)
+				b.exitProbeRttAt = now.Add(ProbeRttTime / 2)
 				b.probeRttRoundPassed = false
 			}
 		} else {
@@ -713,7 +714,7 @@ func (b *bbrSender) ProbeRttCongestionWindow() protocol.ByteCount {
 	if b.probeRttBasedOnBdp {
 		return b.GetTargetCongestionWindow(ModerateProbeRttMultiplier)
 	} else {
-		return b.minCongestionWindow
+		return maxByteCount(b.congestionWindow/2, b.minCongestionWindow)
 	}
 }
 
